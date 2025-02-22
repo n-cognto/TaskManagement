@@ -1,0 +1,49 @@
+<header class="bg-white shadow-sm">
+    <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+            <div class="flex">
+                <div class="flex-shrink-0 flex items-center">
+                    <a href="{% url 'dashboard' %}" class="text-xl font-bold text-indigo-600">ProjectManager</a>
+                </div>
+                
+                {% if user.is_authenticated %}
+                <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+                    <a href="{% url 'project-list' %}" 
+                       class="{% if request.resolver_match.url_name == 'project-list' %}border-indigo-500 text-gray-900{% else %}border-transparent text-gray-500{% endif %} 
+                              inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                        Projects
+                    </a>
+                    <a href="{% url 'task-board' %}"
+                       class="{% if request.resolver_match.url_name == 'task-board' %}border-indigo-500 text-gray-900{% else %}border-transparent text-gray-500{% endif %}
+                              inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                        Tasks
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="flex items-center">
+                {% if user.is_authenticated %}
+                    <div class="relative" x-data="{ open: false }">
+                        <button @click="open = !open" class="flex items-center space-x-2 text-sm focus:outline-none">
+                            <img class="h-8 w-8 rounded-full" src="{% firstof user.avatar_url 'https://ui-avatars.com/api/?name='|add:user.get_full_name|urlencode %}" alt="">
+                            <span class="hidden md:block">{{ user.get_full_name }}</span>
+                        </button>
+                        
+                        <div x-show="open" 
+                             @click.away="open = false"
+                             class="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
+                            <div class="py-1">
+                                <a href="{% url 'profile' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
+                                <a href="{% url 'logout' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Sign out</a>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <a href="{% url 'login' %}" class="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium">Log in</a>
+                    <a href="{% url 'register' %}" class="ml-4 bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700">Sign up</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+</header>

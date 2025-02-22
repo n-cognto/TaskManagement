@@ -1,0 +1,166 @@
+
+<!-- tasks/board.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="task-board">
+    <style>
+        .task-board {
+            padding: 1.5rem 0;
+        }
+
+        .board-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .board-columns {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+            align-items: start;
+        }
+
+        .board-column {
+            background: var(--background);
+            border-radius: 0.5rem;
+            padding: 1rem;
+        }
+
+        .column-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .column-title {
+            font-weight: 600;
+            color: var(--text-light);
+        }
+
+        .task-count {
+            background: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 1rem;
+            font-size: 0.875rem;
+            color: var(--text-light);
+        }
+
+        .task-list {
+            min-height: 200px;
+        }
+
+        .task-card {
+            cursor: grab;
+            margin-bottom: 0.5rem;
+            transition: transform 0.2s;
+        }
+
+        .task-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .task-card.dragging {
+            opacity: 0.5;
+        }
+
+        .task-title {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .task-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.875rem;
+            color: var(--text-light);
+        }
+
+        .priority-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .priority-high {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .priority-medium {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .priority-low {
+            background: #d1fae5;
+            color: #065f46;
+        }
+    </style>
+
+    <div class="board-header">
+        <h1>Task Board</h1>
+        <button class="btn btn-primary" hx-get="{% url 'task-create' %}" hx-target="#modal-container">
+            Add Task
+        </button>
+    </div>
+
+    <div class="board-columns">
+        {% for status, status_display in status_choices %}
+        <div class="board-column" data-status="{{ status }}"
+             hx-trigger="dragover:preventDefault dragenter:preventDefault"
+             hx-on="drop: handleTaskDrop(event)">
+            <div class="column-header">
+                <h3 class="column-title">{{ status_display }}</h3>
+                <span class="task-count">{{ tasks|filter_status:status|length }}</span>
+            </div>
+            <div class="task-list">
+                {% for task in tasks|filter_status:status %}
+                <div class="card task-card" 
+                     draggable="true"
+                     data-task-id="{{ task.id }}"
+                     hx-trigger="dragend"
+                     hx-post="{% url 'task-update-status' task.id %}">
+                    <h4 class="task-title">{{ task.title }}</h4>
+                    {% if task.description %}
+                    <p class="task-description">{{ task.description|truncatewords:20 }}</p>
+                    {% endif %}
+                    <div class="task-meta">
+                        <span class="priority-badge priority-{{ task.priority }}">
+                            {{ task.get_priority_display }}
+                        </span>
+                        {% if task.assigned_to %}
+                        <div class="assigned-to">
+                            <img src="{% firstof task.assigned_to.avatar_url 'https://ui-avatars.com/api/?name='|add:task.assigned_to.get_full_name|urlencode %}"
+                                 alt="{{ task.assigned_to.get_full_name }}"
+                                 class="member-avatar">
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+    function handleTaskDrop(event) {
+        event.preventDefault();
+        const taskId = event.dataTransfer.getData('text/plain');
+        const newStatus = event.target.closest('.board-column').dataset.status;
+        
+        htmx.ajax('POST', `/tasks/${taskId}/update-status/`, {
+            target: '#task-board',
+            swap: 'outerHTML',
+            values: { status: newStatus }
+        });
+    }
+</script>
+{% endblock %}

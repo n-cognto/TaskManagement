@@ -1,0 +1,113 @@
+
+<!-- projects/list.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="project-list">
+    <style>
+        .project-list {
+            display: grid;
+            gap: 1.5rem;
+            padding: 1.5rem 0;
+        }
+
+        .project-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .project-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .project-card {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .project-card-header {
+            margin-bottom: 1rem;
+        }
+
+        .project-card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-color);
+            text-decoration: none;
+        }
+
+        .project-card-description {
+            color: var(--text-light);
+            margin: 0.5rem 0;
+            flex-grow: 1;
+        }
+
+        .project-card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .member-avatars {
+            display: flex;
+            margin-left: -0.5rem;
+        }
+
+        .member-avatar {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 50%;
+            border: 2px solid white;
+            margin-left: -0.5rem;
+        }
+    </style>
+
+    <div class="project-header">
+        <h1>Projects</h1>
+        <button class="btn btn-primary" hx-get="{% url 'project-create' %}" hx-target="#modal-container">
+            New Project
+        </button>
+    </div>
+
+    <div class="project-grid">
+        {% for project in projects %}
+        <article class="card project-card">
+            <div class="project-card-header">
+                <a href="{% url 'project-detail' project.id %}" class="project-card-title">
+                    {{ project.name }}
+                </a>
+                <p class="project-card-description">{{ project.description|truncatewords:30 }}</p>
+            </div>
+            <div class="project-card-footer">
+                <div class="member-avatars">
+                    {% for member in project.members.all|slice:":5" %}
+                        <img class="member-avatar" src="{% firstof member.avatar_url 'https://ui-avatars.com/api/?name='|add:member.get_full_name|urlencode %}" 
+                             alt="{{ member.get_full_name }}" 
+                             title="{{ member.get_full_name }}">
+                    {% endfor %}
+                </div>
+                <span class="text-light">{{ project.tasks.count }} tasks</span>
+            </div>
+        </article>
+        {% empty %}
+        <div class="card" style="grid-column: 1 / -1; text-align: center; padding: 2rem;">
+            <h3>No projects yet</h3>
+            <p style="color: var(--text-light); margin: 1rem 0;">
+                Create your first project to get started
+            </p>
+            <button class="btn btn-primary" hx-get="{% url 'project-create' %}" hx-target="#modal-container">
+                Create Project
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

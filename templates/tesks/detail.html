@@ -1,0 +1,156 @@
+<!-- tasks/detail.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .task-detail {
+        max-width: 800px;
+        margin: 2rem auto;
+    }
+
+    .task-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 2rem;
+    }
+
+    .task-status {
+        padding: 0.5rem 1rem;
+        border-radius: 2rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+    }
+
+    .status-todo { background: #f3f4f6; color: #374151; }
+    .status-in-progress { background: #dbeafe; color: #1e40af; }
+    .status-completed { background: #d1fae5; color: #065f46; }
+
+    .task-section {
+        margin-bottom: 2rem;
+    }
+
+    .section-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .meta-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+
+    .meta-item {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .meta-label {
+        font-size: 0.875rem;
+        color: var(--text-light);
+        margin-bottom: 0.25rem;
+    }
+
+    .meta-value {
+        font-weight: 500;
+    }
+
+    .attachments-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 1rem;
+    }
+
+    .attachment-item {
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 0.75rem;
+        text-decoration: none;
+        color: inherit;
+        transition: background-color 0.2s;
+    }
+
+    .attachment-item:hover {
+        background-color: var(--background);
+    }
+
+    .attachment-icon {
+        width: 2rem;
+        height: 2rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .attachment-name {
+        font-size: 0.875rem;
+        word-break: break-all;
+    }
+</style>
+
+<div class="task-detail">
+    <div class="task-header">
+        <div>
+            <h1>{{ task.title }}</h1>
+            <p class="text-light">Created by {{ task.created_by.get_full_name }} on {{ task.created_at|date:"M d, Y" }}</p>
+        </div>
+        <span class="task-status status-{{ task.status }}">{{ task.get_status_display }}</span>
+    </div>
+
+    <div class="task-section">
+        <div class="meta-grid">
+            <div class="meta-item">
+                <span class="meta-label">Assigned To</span>
+                <span class="meta-value">
+                    {% if task.assigned_to %}
+                        {{ task.assigned_to.get_full_name }}
+                    {% else %}
+                        Unassigned
+                    {% endif %}
+                </span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Due Date</span>
+                <span class="meta-value">
+                    {% if task.due_date %}
+                        {{ task.due_date|date:"M d, Y" }}
+                    {% else %}
+                        No due date
+                    {% endif %}
+                </span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Priority</span>
+                <span class="meta-value">{{ task.get_priority_display }}</span>
+            </div>
+        </div>
+    </div>
+
+    {% if task.description %}
+    <div class="task-section">
+        <h2 class="section-title">Description</h2>
+        <div class="card">
+            {{ task.description|linebreaks }}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="task-section">
+        <h2 class="section-title">Attachments</h2>
+        <div class="attachments-list">
+            {% for attachment in task.attachments.all %}
+            <a href="{{ attachment.file.url }}" class="attachment-item" download>
+                <svg class="attachment-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span class="attachment-name">{{ attachment.file.name|truncatechars:20 }}</span>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% include "partials/_comments.html" with comments=task.comments.all %}
+</div>
+{% endblock %}
