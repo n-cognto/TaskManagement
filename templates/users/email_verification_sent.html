@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block title %}Email Verification Sent{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-0">Email Verification Sent</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info" role="alert">
+                        <h4 class="alert-heading"><i class="fas fa-envelope"></i> Check Your Email</h4>
+                        <p>We've sent an email with a confirmation link to your email address. Please check your inbox and click the link to activate your account.</p>
+                        <hr>
+                        <p class="mb-0">If you don't receive an email within a few minutes, please check your spam folder. If you still don't see it, you may need to <a href="{% url 'register' %}">try registering again</a> with a different email address.</p>
+                    </div>
+                    <a href="{% url 'login' %}" class="btn btn-primary">
+                        <i class="fas fa-arrow-left"></i> Back to login
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
