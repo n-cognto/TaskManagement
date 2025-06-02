@@ -1,0 +1,271 @@
+{% extends 'base.html' %}
+
+{% block title %}My Tasks - Task Management{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">My Tasks</h1>
+
+<div class="row">
+    <div class="col-md-3 mb-4">
+        <div class="card bg-danger text-white">
+            <div class="card-body text-center">
+                <h3 class="display-4 mb-0">{{ overdue_tasks.count }}</h3>
+                <p class="mb-0">Overdue Tasks</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card bg-warning text-dark">
+            <div class="card-body text-center">
+                <h3 class="display-4 mb-0">{{ due_today.count }}</h3>
+                <p class="mb-0">Due Today</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <h3 class="display-4 mb-0">{{ due_this_week.count }}</h3>
+                <p class="mb-0">Due This Week</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <h3 class="display-4 mb-0">{{ recently_completed.count }}</h3>
+                <p class="mb-0">Recently Completed</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">Status Breakdown</h4>
+            </div>
+            <div class="card-body">
+                <div class="progress" style="height: 30px;">
+                    {% for status in status_breakdown %}
+                    <div class="progress-bar 
+                        {% if status.status == 'TODO' %}bg-secondary
+                        {% elif status.status == 'IN_PROGRESS' %}bg-primary
+                        {% elif status.status == 'REVIEW' %}bg-info
+                        {% elif status.status == 'DONE' %}bg-success
+                        {% endif %}" 
+                        role="progressbar" 
+                        style="width: {{ status.percentage }}%" 
+                        aria-valuenow="{{ status.percentage }}" 
+                        aria-valuemin="0" 
+                        aria-valuemax="100">
+                        {{ status.status }} ({{ status.count }})
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="row mt-3">
+                    {% for status in status_breakdown %}
+                    <div class="col-md-3">
+                        <div class="d-flex align-items-center">
+                            <div class="p-2 me-2
+                                {% if status.status == 'TODO' %}bg-secondary
+                                {% elif status.status == 'IN_PROGRESS' %}bg-primary
+                                {% elif status.status == 'REVIEW' %}bg-info
+                                {% elif status.status == 'DONE' %}bg-success
+                                {% endif %}"
+                                style="width: 20px; height: 20px;">
+                            </div>
+                            <div>{{ status.status }}: {{ status.count }} ({{ status.percentage }}%)</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Overdue Tasks -->
+{% if overdue_tasks.count > 0 %}
+<div class="card mb-4">
+    <div class="card-header bg-danger text-white">
+        <h4 class="mb-0">Overdue Tasks</h4>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Task</th>
+                        <th>Project</th>
+                        <th>Due Date</th>
+                        <th>Priority</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in overdue_tasks.tasks %}
+                    <tr>
+                        <td>{{ task.title }}</td>
+                        <td>{{ task.task_list.project.name }}</td>
+                        <td class="text-danger">{{ task.due_date|date:"M d, Y" }}</td>
+                        <td>
+                            <span class="badge {% if task.priority == 'HIGH' %}bg-danger{% elif task.priority == 'MEDIUM' %}bg-warning text-dark{% else %}bg-info{% endif %}">
+                                {{ task.get_priority_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge {% if task.status == 'TODO' %}bg-secondary{% elif task.status == 'IN_PROGRESS' %}bg-primary{% elif task.status == 'REVIEW' %}bg-info{% else %}bg-success{% endif %}">
+                                {{ task.get_status_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{% url 'task-detail' task.id %}" class="btn btn-sm btn-outline-primary">View</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Due Today Tasks -->
+{% if due_today.count > 0 %}
+<div class="card mb-4">
+    <div class="card-header bg-warning text-dark">
+        <h4 class="mb-0">Due Today</h4>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Task</th>
+                        <th>Project</th>
+                        <th>Due Date</th>
+                        <th>Priority</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in due_today.tasks %}
+                    <tr>
+                        <td>{{ task.title }}</td>
+                        <td>{{ task.task_list.project.name }}</td>
+                        <td>{{ task.due_date|date:"M d, Y" }}</td>
+                        <td>
+                            <span class="badge {% if task.priority == 'HIGH' %}bg-danger{% elif task.priority == 'MEDIUM' %}bg-warning text-dark{% else %}bg-info{% endif %}">
+                                {{ task.get_priority_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge {% if task.status == 'TODO' %}bg-secondary{% elif task.status == 'IN_PROGRESS' %}bg-primary{% elif task.status == 'REVIEW' %}bg-info{% else %}bg-success{% endif %}">
+                                {{ task.get_status_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{% url 'task-detail' task.id %}" class="btn btn-sm btn-outline-primary">View</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Due This Week Tasks -->
+{% if due_this_week.count > 0 %}
+<div class="card mb-4">
+    <div class="card-header bg-info text-white">
+        <h4 class="mb-0">Due This Week</h4>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Task</th>
+                        <th>Project</th>
+                        <th>Due Date</th>
+                        <th>Priority</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in due_this_week.tasks %}
+                    <tr>
+                        <td>{{ task.title }}</td>
+                        <td>{{ task.task_list.project.name }}</td>
+                        <td>{{ task.due_date|date:"M d, Y" }}</td>
+                        <td>
+                            <span class="badge {% if task.priority == 'HIGH' %}bg-danger{% elif task.priority == 'MEDIUM' %}bg-warning text-dark{% else %}bg-info{% endif %}">
+                                {{ task.get_priority_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge {% if task.status == 'TODO' %}bg-secondary{% elif task.status == 'IN_PROGRESS' %}bg-primary{% elif task.status == 'REVIEW' %}bg-info{% else %}bg-success{% endif %}">
+                                {{ task.get_status_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{% url 'task-detail' task.id %}" class="btn btn-sm btn-outline-primary">View</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Recently Completed Tasks -->
+{% if recently_completed.count > 0 %}
+<div class="card mb-4">
+    <div class="card-header bg-success text-white">
+        <h4 class="mb-0">Recently Completed</h4>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Task</th>
+                        <th>Project</th>
+                        <th>Completed Date</th>
+                        <th>Priority</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in recently_completed.tasks %}
+                    <tr>
+                        <td>{{ task.title }}</td>
+                        <td>{{ task.task_list.project.name }}</td>
+                        <td>{{ task.updated_at|date:"M d, Y" }}</td>
+                        <td>
+                            <span class="badge {% if task.priority == 'HIGH' %}bg-danger{% elif task.priority == 'MEDIUM' %}bg-warning text-dark{% else %}bg-info{% endif %}">
+                                {{ task.get_priority_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{% url 'task-detail' task.id %}" class="btn btn-sm btn-outline-primary">View</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

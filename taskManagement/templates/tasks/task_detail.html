@@ -1,0 +1,301 @@
+{% extends 'base.html' %}
+
+{% block title %}Task Details - {{ task.title }} - Task Management{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <a href="{% url 'project-detail' task.task_list.project.id %}" class="btn btn-outline-secondary mb-2">
+                <i class="fas fa-arrow-left"></i> Back to Project
+            </a>
+            <h1>{{ task.title }}</h1>
+        </div>
+        <div>
+            <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#editTaskModal">
+                <i class="fas fa-edit"></i> Edit Task
+            </button>
+            <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteTaskModal">
+                <i class="fas fa-trash"></i> Delete
+            </button>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Task Description</h4>
+                </div>
+                <div class="card-body">
+                    {% if task.description %}
+                    <p>{{ task.description|linebreaks }}</p>
+                    {% else %}
+                    <p class="text-muted">No description provided.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Dependencies Section -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Dependencies</h4>
+                    <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#addDependencyModal">
+                        <i class="fas fa-plus"></i> Add
+                    </button>
+                </div>
+                <div class="card-body">
+                    {% if task.dependencies.exists %}
+                    <p>This task depends on the following tasks being completed:</p>
+                    <ul class="list-group">
+                        {% for dependency in task.dependencies.all %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="badge {% if dependency.status == 'DONE' %}bg-success{% else %}bg-warning{% endif %} me-2">
+                                    {{ dependency.get_status_display }}
+                                </span>
+                                <a href="{% url 'task-detail' dependency.id %}">{{ dependency.title }}</a>
+                            </div>
+                            <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#removeDependencyModal{{ dependency.id }}">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-muted">This task has no dependencies.</p>
+                    {% endif %}
+                </div>
+                {% if task.is_blocked %}
+                <div class="card-footer bg-warning text-dark">
+                    <i class="fas fa-exclamation-triangle"></i> This task is blocked by unfinished dependencies.
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Comments Section -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Comments</h4>
+                </div>
+                <div class="card-body">
+                    {% if comments %}
+                    <div class="comments">
+                        {% for comment in comments %}
+                        <div class="comment mb-3 pb-3 border-bottom">
+                            <div class="d-flex justify-content-between">
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
+                                        {{ comment.author.username|slice:":1"|upper }}
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold">{{ comment.author.username }}</div>
+                                        <div class="text-muted small">{{ comment.created_at|date:"M d, Y h:i a" }}</div>
+                                    </div>
+                                </div>
+                                {% if comment.author == user %}
+                                <div>
+                                    <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteCommentModal{{ comment.id }}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="mt-2">
+                                {{ comment.content|linebreaks }}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No comments yet.</p>
+                    {% endif %}
+
+                    <form method="post" action="{% url 'task-add-comment' task.id %}" class="mt-3">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="id_comment" class="form-label">Add a comment</label>
+                            <textarea class="form-control" id="id_comment" name="content" rows="3" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Post Comment</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- Task Details Sidebar -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Task Details</h4>
+                </div>
+                <div class="card-body">
+                    <p><strong>Status:</strong> 
+                        <span class="badge {% if task.status == 'DONE' %}bg-success{% elif task.status == 'TODO' %}bg-secondary{% elif task.status == 'IN_PROGRESS' %}bg-primary{% else %}bg-info{% endif %}">
+                            {{ task.get_status_display }}
+                        </span>
+                    </p>
+                    <p><strong>Priority:</strong> 
+                        <span class="badge {% if task.priority == 'HIGH' %}bg-danger{% elif task.priority == 'MEDIUM' %}bg-warning text-dark{% else %}bg-info{% endif %}">
+                            {{ task.get_priority_display }}
+                        </span>
+                    </p>
+                    <p><strong>Project:</strong> 
+                        <a href="{% url 'project-detail' task.task_list.project.id %}">{{ task.task_list.project.name }}</a>
+                    </p>
+                    <p><strong>Task List:</strong> {{ task.task_list.name }}</p>
+                    <p><strong>Created:</strong> {{ task.created_at|date:"F j, Y" }}</p>
+                    <p><strong>Due Date:</strong> 
+                        {% if task.due_date %}
+                        <span class="{% if task.is_overdue %}text-danger{% endif %}">
+                            {{ task.due_date|date:"F j, Y" }}
+                            {% if task.is_overdue %}<i class="fas fa-exclamation-circle"></i> Overdue{% endif %}
+                        </span>
+                        {% else %}
+                        <span class="text-muted">Not set</span>
+                        {% endif %}
+                    </p>
+                    <p><strong>Assigned to:</strong> 
+                        {% if task.assigned_to %}
+                        {{ task.assigned_to.username }}
+                        {% else %}
+                        <span class="text-muted">Unassigned</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Task Attachments -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Attachments</h4>
+                    <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#addAttachmentModal">
+                        <i class="fas fa-paperclip"></i> Add
+                    </button>
+                </div>
+                <div class="card-body">
+                    {% if attachments %}
+                    <ul class="list-group">
+                        {% for attachment in attachments %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-file"></i>
+                                <a href="{{ attachment.file.url }}" target="_blank">{{ attachment.file_name }}</a>
+                                <div class="text-muted small">Uploaded {{ attachment.created_at|date:"M d, Y" }}</div>
+                            </div>
+                            <div>
+                                <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteAttachmentModal{{ attachment.id }}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-muted">No attachments yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Task Modal -->
+<div class="modal fade" id="editTaskModal" tabindex="-1" aria-labelledby="editTaskModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="editTaskModalLabel">Edit Task</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'task-update' task.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="id_title" class="form-label">Title</label>
+                                <input type="text" class="form-control" id="id_title" name="title" value="{{ task.title }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="id_status" class="form-label">Status</label>
+                                <select class="form-select" id="id_status" name="status">
+                                    <option value="TODO" {% if task.status == 'TODO' %}selected{% endif %}>To Do</option>
+                                    <option value="IN_PROGRESS" {% if task.status == 'IN_PROGRESS' %}selected{% endif %}>In Progress</option>
+                                    <option value="REVIEW" {% if task.status == 'REVIEW' %}selected{% endif %}>Review</option>
+                                    <option value="DONE" {% if task.status == 'DONE' %}selected{% endif %}>Done</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="id_priority" class="form-label">Priority</label>
+                                <select class="form-select" id="id_priority" name="priority">
+                                    <option value="LOW" {% if task.priority == 'LOW' %}selected{% endif %}>Low</option>
+                                    <option value="MEDIUM" {% if task.priority == 'MEDIUM' %}selected{% endif %}>Medium</option>
+                                    <option value="HIGH" {% if task.priority == 'HIGH' %}selected{% endif %}>High</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="id_due_date" class="form-label">Due Date</label>
+                                <input type="date" class="form-control" id="id_due_date" name="due_date" value="{{ task.due_date|date:'Y-m-d' }}">
+                            </div>
+                            <div class="mb-3">
+                                <label for="id_assigned_to" class="form-label">Assigned To</label>
+                                <select class="form-select" id="id_assigned_to" name="assigned_to">
+                                    <option value="">Unassigned</option>
+                                    {% for member in task.task_list.project.members.all %}
+                                    <option value="{{ member.id }}" {% if task.assigned_to == member %}selected{% endif %}>{{ member.username }}</option>
+                                    {% endfor %}
+                                    {% if task.task_list.project.owner not in task.task_list.project.members.all %}
+                                    <option value="{{ task.task_list.project.owner.id }}" {% if task.assigned_to == task.task_list.project.owner %}selected{% endif %}>{{ task.task_list.project.owner.username }}</option>
+                                    {% endif %}
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="id_task_list" class="form-label">Task List</label>
+                                <select class="form-select" id="id_task_list" name="task_list">
+                                    {% for list in task.task_list.project.tasklist_set.all %}
+                                    <option value="{{ list.id }}" {% if task.task_list == list %}selected{% endif %}>{{ list.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_description" class="form-label">Description</label>
+                        <textarea class="form-control" id="id_description" name="description" rows="3">{{ task.description }}</textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Task Modal -->
+<div class="modal fade" id="deleteTaskModal" tabindex="-1" aria-labelledby="deleteTaskModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteTaskModalLabel">Delete Task</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the task "{{ task.title }}"?</p>
+                <p class="text-danger"><strong>Warning:</strong> This action cannot be undone and will delete all comments and attachments associated with this task.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="post" action="{% url 'task-delete' task.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Delete Task</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
