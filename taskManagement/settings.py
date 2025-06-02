@@ -55,6 +55,8 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',  # Add whitenoise for static files
+    'tasks.middleware.RequestValidationMiddleware',  # Add request validation middleware
+    'tasks.middleware.RequestSanitizationMiddleware',  # Add request sanitization middleware
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -160,6 +162,16 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10,
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/day',
+        'user': '1000/day',
+        'api_login': '5/minute',  # Custom throttle for login
+        'api_register': '10/hour',  # Custom throttle for registration
+    }
 }
 
 # JWT Settings
@@ -210,3 +222,43 @@ LOGIN_REDIRECT_URL = '/'
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]
+
+# Cache Configuration
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+        'TIMEOUT': 300,  # 5 minutes
+    }
+}
+
+# For production, consider using Redis or Memcached:
+if not DEBUG:
+    CACHES = {
+        'default': {
+            'BACKEND': os.environ.get(
+                'CACHE_BACKEND', 
+                'django.core.cache.backends.locmem.LocMemCache'
+            ),
+            'LOCATION': os.environ.get('CACHE_LOCATION', 'unique-snowflake'),
+            'TIMEOUT': int(os.environ.get('CACHE_TIMEOUT', 300)),
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            } if 'redis' in os.environ.get('CACHE_BACKEND', '') else {},
+        }
+    }
+
+# Key for cache versioning - change when models change
+CACHE_VERSION = 1
+
+# Email Configuration
+EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@taskmanagement.com')
+
+# Password Reset Settings
+PASSWORD_RESET_TIMEOUT = 259200  # 3 days in seconds
