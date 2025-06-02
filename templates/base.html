@@ -31,12 +31,28 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'project-list' %}">Projects</a>
                     </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="activityDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-history"></i> Activity
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="activityDropdown">
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-clipboard-list"></i> Recent Activity</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-chart-line"></i> Activity Reports</a></li>
+                        </ul>
+                    </li>
                     {% endif %}
                 </ul>
                 <ul class="navbar-nav">
                     {% if user.is_authenticated %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'logout' %}">Logout</a>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-user-circle"></i> {{ user.username }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                            <li><a class="dropdown-item" href="{% url 'user-profile' %}"><i class="fas fa-id-card"></i> Profile</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                        </ul>
                     </li>
                     {% else %}
                     <li class="nav-item">
@@ -66,8 +82,39 @@
     </div>
 
     <footer class="bg-light py-3 mt-5">
-        <div class="container text-center">
-            <p class="text-muted">Task Management System &copy; {% now "Y" %}</p>
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4">
+                    <h5>Task Management</h5>
+                    <p class="text-muted">Organize your work, manage your team, and track your progress.</p>
+                </div>
+                <div class="col-md-4">
+                    <h5>Quick Links</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="{% url 'project-list' %}" class="text-decoration-none">Projects</a></li>
+                        {% if user.is_authenticated %}
+                        <li><a href="{% url 'user-task-summary' %}" class="text-decoration-none">My Tasks</a></li>
+                        <li><a href="{% url 'user-profile' %}" class="text-decoration-none">Profile</a></li>
+                        {% else %}
+                        <li><a href="{% url 'login' %}" class="text-decoration-none">Login</a></li>
+                        <li><a href="{% url 'register' %}" class="text-decoration-none">Register</a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h5>Help & Support</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="{% url 'schema-swagger-ui' %}" class="text-decoration-none">API Documentation</a></li>
+                        <li><a href="{% url 'password_reset' %}" class="text-decoration-none">Forgot Password</a></li>
+                        <li><a href="#" class="text-decoration-none">Contact Support</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col text-center">
+                    <p class="text-muted mb-0">Task Management System &copy; {% now "Y" %}</p>
+                </div>
+            </div>
         </div>
     </footer>
 
