@@ -1,0 +1,14 @@
+{% autoescape off %}
+Hello {{ user.username }},
+
+Please click on the link below to confirm your registration and activate your account:
+
+http://{{ domain }}/verify-email/{{ token }}/
+
+If you did not register for this account, you can safely ignore this email.
+
+This link will expire in 48 hours.
+
+Thanks,
+The Task Management Team
+{% endautoescape %}
