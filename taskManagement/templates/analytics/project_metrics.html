@@ -1,0 +1,266 @@
+{% extends 'base.html' %}
+
+{% block title %}Project Metrics - {{ project_name }} - Task Management{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <a href="{% url 'project-detail' project_id %}" class="btn btn-outline-secondary mb-2">
+            <i class="fas fa-arrow-left"></i> Back to Project
+        </a>
+        <h1>{{ project_name }} - Metrics</h1>
+    </div>
+    <div>
+        <button class="btn btn-outline-primary" id="refreshBtn">
+            <i class="fas fa-sync"></i> Refresh Data
+        </button>
+        <button class="btn btn-outline-success" id="exportBtn">
+            <i class="fas fa-file-export"></i> Export
+        </button>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-3 mb-4">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <h3 class="display-4 mb-0">{{ total_tasks }}</h3>
+                <p class="mb-0">Total Tasks</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <h3 class="display-4 mb-0">{{ completion_rate|floatformat:0 }}%</h3>
+                <p class="mb-0">Completion Rate</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card bg-danger text-white">
+            <div class="card-body text-center">
+                <h3 class="display-4 mb-0">{{ overdue_tasks }}</h3>
+                <p class="mb-0">Overdue Tasks</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <h3 class="display-4 mb-0">{{ upcoming_tasks }}</h3>
+                <p class="mb-0">Due This Week</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Status Breakdown Chart -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Task Status</h4>
+            </div>
+            <div class="card-body">
+                <canvas id="statusChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Priority Breakdown Chart -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Task Priority</h4>
+            </div>
+            <div class="card-body">
+                <canvas id="priorityChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Assigned User Breakdown -->
+    <div class="col-md-8 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Tasks by User</h4>
+            </div>
+            <div class="card-body">
+                <canvas id="userChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Completion Time -->
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Average Completion Time</h4>
+            </div>
+            <div class="card-body text-center">
+                <div class="d-flex align-items-center justify-content-center h-100">
+                    <div>
+                        <h2 class="display-3 mb-0">{{ avg_completion_days }}</h2>
+                        <p class="lead">Days</p>
+                        <p class="text-muted">Average time to complete tasks in this project</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Table with detailed metrics -->
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">Task Details</h4>
+                <input type="text" id="taskSearch" class="form-control form-control-sm w-25" placeholder="Search tasks...">
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover" id="taskTable">
+                        <thead>
+                            <tr>
+                                <th onclick="sortTable(0)">Task <i class="fas fa-sort"></i></th>
+                                <th onclick="sortTable(1)">Status <i class="fas fa-sort"></i></th>
+                                <th onclick="sortTable(2)">Priority <i class="fas fa-sort"></i></th>
+                                <th onclick="sortTable(3)">Assigned To <i class="fas fa-sort"></i></th>
+                                <th onclick="sortTable(4)">Due Date <i class="fas fa-sort"></i></th>
+                                <th onclick="sortTable(5)">Created <i class="fas fa-sort"></i></th>
+                                <th onclick="sortTable(6)">Completion Time <i class="fas fa-sort"></i></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- This will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+<script>
+    // Chart color schemes
+    const statusColors = {
+        'TODO': '#6c757d',
+        'IN_PROGRESS': '#0d6efd',
+        'REVIEW': '#0dcaf0',
+        'DONE': '#198754'
+    };
+    
+    const priorityColors = {
+        'LOW': '#0dcaf0',
+        'MEDIUM': '#ffc107',
+        'HIGH': '#dc3545'
+    };
+    
+    // Parse the data from Django
+    const statusBreakdown = {{ status_breakdown|safe }};
+    const priorityBreakdown = {{ priority_breakdown|safe }};
+    const assignedUserBreakdown = {{ assigned_user_breakdown|safe }};
+    
+    // Create Status Chart
+    const statusCtx = document.getElementById('statusChart').getContext('2d');
+    const statusChart = new Chart(statusCtx, {
+        type: 'doughnut',
+        data: {
+            labels: statusBreakdown.map(item => item.status),
+            datasets: [{
+                data: statusBreakdown.map(item => item.count),
+                backgroundColor: statusBreakdown.map(item => statusColors[item.status] || '#6c757d'),
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'right',
+                }
+            }
+        }
+    });
+    
+    // Create Priority Chart
+    const priorityCtx = document.getElementById('priorityChart').getContext('2d');
+    const priorityChart = new Chart(priorityCtx, {
+        type: 'doughnut',
+        data: {
+            labels: priorityBreakdown.map(item => item.priority),
+            datasets: [{
+                data: priorityBreakdown.map(item => item.count),
+                backgroundColor: priorityBreakdown.map(item => priorityColors[item.priority] || '#6c757d'),
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'right',
+                }
+            }
+        }
+    });
+    
+    // Create User Chart
+    const userCtx = document.getElementById('userChart').getContext('2d');
+    const userChart = new Chart(userCtx, {
+        type: 'bar',
+        data: {
+            labels: assignedUserBreakdown.map(item => item.assigned_to__username || 'Unassigned'),
+            datasets: [{
+                label: 'Tasks',
+                data: assignedUserBreakdown.map(item => item.count),
+                backgroundColor: '#0d6efd',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        precision: 0
+                    }
+                }
+            }
+        }
+    });
+    
+    // Sorting function for the table
+    function sortTable(n) {
+        // Table sorting logic would go here
+    }
+    
+    // Search functionality
+    document.getElementById('taskSearch').addEventListener('keyup', function() {
+        // Table search logic would go here
+    });
+    
+    // Export functionality
+    document.getElementById('exportBtn').addEventListener('click', function() {
+        // Export logic would go here
+        alert('Export functionality would be implemented here.');
+    });
+    
+    // Refresh data
+    document.getElementById('refreshBtn').addEventListener('click', function() {
+        location.reload();
+    });
+</script>
+{% endblock %}
