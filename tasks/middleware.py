@@ -1,7 +1,7 @@
 import re
 import html
 from django.utils.deprecation import MiddlewareMixin
-from django.http import HttpResponseBadRequest
+from django.http import HttpResponseBadRequest, QueryDict
 
 class RequestSanitizationMiddleware(MiddlewareMixin):
     """
@@ -14,7 +14,13 @@ class RequestSanitizationMiddleware(MiddlewareMixin):
             
         # Clean POST data
         if hasattr(request, 'POST') and request.POST:
-            self._sanitize_data(request.POST)
+            # Create a mutable copy of the QueryDict
+            mutable_post = request.POST.copy()
+            self._sanitize_data(mutable_post)
+            
+            # Replace the original POST with the sanitized version
+            # Note: We can't directly modify request.POST, but we can set request._post
+            request._post = mutable_post
             
         return None
     
