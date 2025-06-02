@@ -2,6 +2,8 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
+from django.utils import timezone
+import os
 from .models import Project, TaskList, Task, Comment, TaskAttachment
 
 class CustomUserCreationForm(UserCreationForm):
