@@ -1,0 +1,306 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ project.name }} - Task Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <a href="{% url 'project-list' %}" class="btn btn-outline-secondary mb-2">
+            <i class="fas fa-arrow-left"></i> Back to Projects
+        </a>
+        <h1>{{ project.name }}</h1>
+        <p class="text-muted">{{ project.description }}</p>
+    </div>
+    <div>
+        {% if project.owner == user %}
+        <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#editProjectModal">
+            <i class="fas fa-edit"></i> Edit Project
+        </button>
+        <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteProjectModal">
+            <i class="fas fa-trash"></i> Delete
+        </button>
+        {% endif %}
+        <a href="{% url 'project-metrics' project.id %}" class="btn btn-info">
+            <i class="fas fa-chart-bar"></i> View Metrics
+        </a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Project Details</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Owner:</strong> {{ project.owner.username }}</p>
+                <p><strong>Created:</strong> {{ project.created_at|date:"F j, Y" }}</p>
+                <p><strong>Last Updated:</strong> {{ project.updated_at|date:"F j, Y" }}</p>
+                <p><strong>Completion:</strong></p>
+                <div class="progress mb-3">
+                    <div class="progress-bar bg-success" role="progressbar" style="width: {{ completion_percentage }}%">
+                        {{ completion_percentage }}% Complete
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Project Members</h5>
+                {% if project.owner == user %}
+                <button class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#addMemberModal">
+                    <i class="fas fa-user-plus"></i> Add Member
+                </button>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <ul class="list-group">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        {{ project.owner.username }}
+                        <span class="badge bg-warning">Owner</span>
+                    </li>
+                    {% for member in project.members.all %}
+                    {% if member != project.owner %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        {{ member.username }}
+                        <span class="badge bg-info">Member</span>
+                        {% if project.owner == user %}
+                        <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#removeMemberModal{{ member.id }}">
+                            <i class="fas fa-user-minus"></i>
+                        </button>
+                        {% endif %}
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Task Lists Section -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Task Lists</h2>
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createTaskListModal">
+        <i class="fas fa-plus"></i> New Task List
+    </button>
+</div>
+
+<div class="row" id="taskLists">
+    {% for task_list in task_lists %}
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">{{ task_list.name }}</h5>
+                <div>
+                    <button class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#createTaskModal{{ task_list.id }}">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                    <button class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#editTaskListModal{{ task_list.id }}">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body task-list" data-list-id="{{ task_list.id }}">
+                {% for task in task_list.tasks.all %}
+                <div class="card mb-2 task-card" data-task-id="{{ task.id }}">
+                    <div class="card-body p-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="form-check">
+                                <input class="form-check-input task-status-checkbox" type="checkbox" value="" id="taskCheck{{ task.id }}" {% if task.status == 'DONE' %}checked{% endif %} data-task-id="{{ task.id }}">
+                                <label class="form-check-label {% if task.status == 'DONE' %}text-decoration-line-through{% endif %}" for="taskCheck{{ task.id }}">
+                                    {{ task.title }}
+                                </label>
+                            </div>
+                            <div>
+                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#viewTaskModal{{ task.id }}">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% if task.due_date %}
+                        <div class="mt-2 small {% if task.is_overdue %}text-danger{% else %}text-muted{% endif %}">
+                            <i class="far fa-calendar-alt"></i> {{ task.due_date|date:"M d, Y" }}
+                        </div>
+                        {% endif %}
+                        {% if task.assigned_to %}
+                        <div class="mt-1 small text-muted">
+                            <i class="far fa-user"></i> {{ task.assigned_to.username }}
+                        </div>
+                        {% endif %}
+                        {% if task.priority %}
+                        <div class="mt-1">
+                            <span class="badge {% if task.priority == 'HIGH' %}bg-danger{% elif task.priority == 'MEDIUM' %}bg-warning text-dark{% else %}bg-info text-white{% endif %}">
+                                {{ task.get_priority_display }}
+                            </span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-muted text-center">No tasks in this list yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="alert alert-info">
+            <p class="mb-0">This project doesn't have any task lists yet. Click the "New Task List" button to create one.</p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Modals for Project Management -->
+<!-- Edit Project Modal -->
+<div class="modal fade" id="editProjectModal" tabindex="-1" aria-labelledby="editProjectModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="editProjectModalLabel">Edit Project</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'project-update' project.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="id_name" class="form-label">Project Name</label>
+                        <input type="text" class="form-control" id="id_name" name="name" value="{{ project.name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_description" class="form-label">Description</label>
+                        <textarea class="form-control" id="id_description" name="description" rows="3">{{ project.description }}</textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Project Modal -->
+<div class="modal fade" id="deleteProjectModal" tabindex="-1" aria-labelledby="deleteProjectModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteProjectModalLabel">Delete Project</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the project "{{ project.name }}"?</p>
+                <p class="text-danger"><strong>Warning:</strong> This action cannot be undone and will delete all task lists, tasks, comments, and attachments associated with this project.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="post" action="{% url 'project-delete' project.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Delete Project</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Member Modal -->
+<div class="modal fade" id="addMemberModal" tabindex="-1" aria-labelledby="addMemberModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="addMemberModalLabel">Add Project Member</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'project-add-member' project.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="id_username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="id_username" name="username" required>
+                        <div class="form-text">Enter the username of the person you want to add to this project.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Member</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Create Task List Modal -->
+<div class="modal fade" id="createTaskListModal" tabindex="-1" aria-labelledby="createTaskListModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="createTaskListModalLabel">Create New Task List</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'tasklist-create' %}">
+                {% csrf_token %}
+                <input type="hidden" name="project" value="{{ project.id }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="id_list_name" class="form-label">Task List Name</label>
+                        <input type="text" class="form-control" id="id_list_name" name="name" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Task List</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // Task status change handler
+    document.querySelectorAll('.task-status-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const taskId = this.dataset.taskId;
+            const isChecked = this.checked;
+            
+            // Make API call to update task status
+            fetch(`/api/tasks/${taskId}/`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify({
+                    status: isChecked ? 'DONE' : 'TODO'
+                })
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Update the UI
+                    const label = this.nextElementSibling;
+                    if (isChecked) {
+                        label.classList.add('text-decoration-line-through');
+                    } else {
+                        label.classList.remove('text-decoration-line-through');
+                    }
+                } else {
+                    // Revert the checkbox if there was an error
+                    this.checked = !isChecked;
+                    alert('Failed to update task status');
+                }
+            })
+            .catch(error => {
+                console.error('Error updating task status:', error);
+                this.checked = !isChecked;
+                alert('Failed to update task status');
+            });
+        });
+    });
+</script>
+{% endblock %}
+{% endblock %}
